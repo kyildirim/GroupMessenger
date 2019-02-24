@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import util.LogStream;
 import util.Logger;
@@ -19,6 +21,7 @@ public class Client implements Runnable {
 	private DataOutputStream outputStream;
 	private ClientThread client;
 	private boolean accepted = false;
+	private int counter = (int) (Math.random()*100);
 
 	public Client(String serverName, int serverPort) {
 		Logger.systemLog(LogStream.OUT, "Conencting to " + serverName);
@@ -39,7 +42,9 @@ public class Client implements Runnable {
 	public void run() {
 		while (thread != null) {
 			try {
-				outputStream.writeUTF(inputStream.readLine());
+				String msg = inputStream.readLine();
+				if(msg!=null) counter++;
+				outputStream.writeUTF("["+counter+"]"+msg);
 				outputStream.flush();
 			} catch (IOException e) {
 				Logger.systemLog(LogStream.ERR, "Error sending message.");
@@ -50,11 +55,18 @@ public class Client implements Runnable {
 	}
 
 	public void handle(String msg) {
+		Pattern p = Pattern.compile("(\\[[^\\]]*\\])");
+		Matcher m = p.matcher(msg);
+		m.find();
+		System.out.println(msg);
+		int c = Integer.parseInt(m.group(1).replace("[", "").replace("]", ""));
+		if(msg!=null) counter = (counter>c)?counter:c;
 		if (msg.equals("/quit")) {
 			Logger.systemLog(LogStream.OUT, "Quitting...");
 			stop();
 		} else
 			System.out.println(msg);
+		System.out.println(counter);
 	}
 
 	public void start() throws IOException {

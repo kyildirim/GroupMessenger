@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import util.LogStream;
 import util.Logger;
@@ -13,6 +15,7 @@ public class Server implements Runnable {
 
 	private ServerSocket socket;
 	private Thread thread;
+	private int counter = 0;
 
 	/**
 	 * List of connected clients.
@@ -121,6 +124,17 @@ public class Server implements Runnable {
 	}
 
 	public synchronized void handle(int ID, String input) {
+		if(input!=null) {
+			Pattern p = Pattern.compile("(\\[[^\\]]*\\])");
+			Matcher m = p.matcher(input);
+			m.find();
+			int c = Integer.parseInt(m.group(1).replace("[", "").replace("]", ""));
+			counter = (counter>c)?counter:c;
+			input = input.substring(input.indexOf(']')+1);
+			input = "[" + counter + "]" + input;
+			counter++;
+		}
+		System.out.println(input);
 		ConnectedClient cc = null;
 		try {
 			cc = findClient(ID);
@@ -130,7 +144,8 @@ public class Server implements Runnable {
 				remove(ID);
 			} else
 				for (ConnectedClient c : connectedClients)
-					if(!c.equals(cc))c.send(cc.getUsername() + ": " + input);
+					//if(!c.equals(cc))c.send(cc.getUsername() + ": " + input);
+					c.send(cc.getUsername() + ": " + input);
 		} catch (InvalidConnectedClientIDException e) {
 			Logger.systemLog(LogStream.ERR, "Requested client not found.");
 			Logger.systemLog(LogStream.ERR, e.getMessage());
